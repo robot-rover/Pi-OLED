@@ -32,15 +32,15 @@ import java.util.logging.Logger;
  * A raspberry pi driver for the 128x64 pixel OLED display (i2c bus).
  * The supported kind of display uses the SSD1306 driver chip and
  * is connected to the raspberry's i2c bus (bus 1).
- * <p/>
- * Note that you need to enable i2c (using for example raspi-config).
+ * <br>
+ * Note that you need to enable i2c (for example, using {@code raspi-config}).
  * Also note that you need to load the following kernel modules:
- * <pre>i2c-bcm2708</pre> and <pre>i2c_dev</pre>
- * <p/>
+ * <code>i2c-bcm2708</code> and <code>i2c_dev</code>
+ * <br>
  * Also note that it is possible to speed up the refresh rate of the
  * display up to ~60fps by adding the following to the config.txt of
  * your raspberry: dtparam=i2c1_baudrate=1000000
- * <p/>
+ * <br><br>
  * Sample usage:
  * <pre>
  * OLEDDisplay display = new OLEDDisplay();
@@ -50,11 +50,11 @@ import java.util.logging.Logger;
  *                      //is automatically cleared the moment
  *                      //the application terminates
  * </pre>
- * <p/>
  * This class is basically a rough port of Adafruit's BSD licensed
- * SSD1306 library (https://github.com/adafruit/Adafruit_SSD1306)
+ * SSD1306 library (<a href="https://github.com/adafruit/Adafruit_SSD1306">https://github.com/adafruit/Adafruit_SSD1306</a>)
  *
  * @author Florian Frankenberger
+ * @author robot_rover
  */
 public class OLEDDisplay {
 
@@ -110,32 +110,32 @@ public class OLEDDisplay {
     private final byte[] imageBuffer = new byte[(DISPLAY_WIDTH * DISPLAY_HEIGHT) / 8];
 
     /**
-     * creates an oled display object with default
-     * i2c bus 1 and default display address of 0x3C
+     * Creates an OLED display object with default
+     * i2c bus (1) and default display address (0x3C)
      *
-     * @throws IOException
+     * @throws IOException if unable to initialize I2C bus or device
      */
     public OLEDDisplay() throws IOException {
         this(DEFAULT_I2C_BUS, DEFAULT_DISPLAY_ADDRESS);
     }
 
     /**
-     * creates an oled display object with default
-     * i2c bus 1 and the given display address
+     * Creates an OLED display object with default
+     * i2c bus (1) and the given display address
      *
      * @param displayAddress the i2c bus address of the display
-     * @throws IOException
+     * @throws IOException if unable to initialize I2C bus or device
      */
     public OLEDDisplay(int displayAddress) throws IOException {
         this(DEFAULT_I2C_BUS, displayAddress);
     }
 
     /**
-     * constructor with all parameters
+     * Creates an OLED display object with the given i2c bus and address
      *
      * @param busNumber the i2c bus number (use constants from I2CBus)
      * @param displayAddress the i2c bus address of the display
-     * @throws IOException
+     * @throws IOException if unable to initialize I2C bus or device
      */
     public OLEDDisplay(int busNumber, int displayAddress) throws IOException {
         bus = I2CFactory.getInstance(busNumber);
@@ -158,14 +158,40 @@ public class OLEDDisplay {
         init();
     }
 
+    /**
+     * Clear the screen. All pixels are set off
+     */
     public synchronized void clear() {
         Arrays.fill(imageBuffer, (byte) 0x00);
     }
 
+    /**
+     * Fills the screen with on or off pixels
+     *
+     * @param on Use on or off pixels
+     */
+    public synchronized void clear(boolean on) {
+        Arrays.fill(imageBuffer, on ? (byte) 0xFF : (byte) 0x00);
+    }
+
+    public synchronized void setBuffer(byte[] src) {
+        System.arraycopy(src, 0, imageBuffer, 0, imageBuffer.length);
+    }
+
+    /**
+     * Get the width of the screen
+     *
+     * @return The screen width in pixels
+     */
     public int getWidth() {
         return DISPLAY_WIDTH;
     }
 
+    /**
+     * Get the height of the screen
+     *
+     * @return The screen height in pixels
+     */
     public int getHeight() {
         return DISPLAY_HEIGHT;
     }
@@ -203,6 +229,13 @@ public class OLEDDisplay {
         writeCommand(SSD1306_DISPLAYON);//--turn on oled panel
     }
 
+    /**
+     * Changes the value of a pixel
+     *
+     * @param x The x coordinate of the pixel (Left is 0)
+     * @param y The y coordinate of the pixel (Top is 0)
+     * @param on Turn the pixel on or off4
+     */
     public synchronized void setPixel(int x, int y, boolean on) {
         final int pos = x + (y / 8) * DISPLAY_WIDTH;
         if (pos >= 0 && pos < MAX_INDEX) {
@@ -214,10 +247,28 @@ public class OLEDDisplay {
         }
     }
 
+    /**
+     * Draws a character on the screen
+     *
+     * @param c The character to draw
+     * @param font The font to use
+     * @param x The x coordinate of the left edge of the character
+     * @param y The y coordinate of the top edge of the character
+     * @param on Draw the character in on or off pixels
+     */
     public synchronized void drawChar(char c, Font font, int x, int y, boolean on) {
         font.drawChar(this, c, x, y, on);
     }
 
+    /**
+     * Draws a string on the screen
+     *
+     * @param string The string to draw
+     * @param font The font to use
+     * @param x The x coordinate of the left edge of the string
+     * @param y The y coordinate of the top edge of the string
+     * @param on Draw the string in on or off pixels
+     */
     public synchronized void drawString(String string, Font font, int x, int y, boolean on) {
         int posX = x;
         int posY = y;
@@ -235,12 +286,29 @@ public class OLEDDisplay {
         }
     }
 
+    /**
+     * Draws a string centered in the middle of the screen
+     *
+     * @param string The string to draw
+     * @param font The font to use
+     * @param y The y coordinate of the top edge of the string
+     * @param on Draw the string in on or off pixels
+     */
     public synchronized void drawStringCentered(String string, Font font, int y, boolean on) {
         final int strSizeX = string.length() * font.getOutterWidth();
         final int x = (this.getWidth() - strSizeX) / 2;
         drawString(string, font, x, y, on);
     }
 
+    /**
+     * Fills a rectangular area of the screen with on or off pixels
+     *
+     * @param x The x coordinate of the left edge of the rectangle
+     * @param y The y coordinate of the top edge of the rectangle
+     * @param width The width of the rectangle
+     * @param height The height of the rectangle
+     * @param on Fill the area with on or off pixels
+     */
     public synchronized void clearRect(int x, int y, int width, int height, boolean on) {
         for (int posX = x; posX < x + width; ++posX) {
             for (int posY = y; posY < y + height; ++posY) {
@@ -253,14 +321,14 @@ public class OLEDDisplay {
      * draws the given image over the current image buffer. The image
      * is automatically converted to a binary image (if it not already
      * is).
-     * <p/>
+     * <br>
      * Note that the current buffer is not cleared before, so if you
      * want the image to completely overwrite the current display
      * content you need to call clear() before.
      *
-     * @param image
-     * @param x
-     * @param y
+     * @param image The image to draw
+     * @param x The x coordinate of the left edge of the image
+     * @param y The y coordinate of the top edge of the image
      */
     public synchronized void drawImage(BufferedImage image, int x, int y) {
         BufferedImage tmpImage = new BufferedImage(this.getWidth(), this.getHeight(), BufferedImage.TYPE_BYTE_BINARY);
@@ -282,7 +350,8 @@ public class OLEDDisplay {
 
     /**
      * sends the current buffer to the display
-     * @throws IOException
+     *
+     * @throws IOException if unable to write bytes to the I2C bus
      */
     public synchronized void update() throws IOException {
         writeCommand(SSD1306_COLUMNADDR);
@@ -312,8 +381,4 @@ public class OLEDDisplay {
         }
     }
 
-    //simple 7x5 font
-    private static final byte FONT_7X5[] = {
-
-    };
 }

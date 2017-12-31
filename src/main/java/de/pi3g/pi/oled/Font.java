@@ -22,10 +22,11 @@ package de.pi3g.pi.oled;
 /**
  *
  * @author Florian Frankenberger
+ * @author robot_rover
  */
-public enum Font {
+public class Font {
 
-    FONT_5X8(0, 255, 5, 8, 9, 3, new byte[] {
+    public static final Font FONT_5X8 = new Font(0, 255, 5, 8, 9, 3, new byte[] {
         (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
         (byte) 0x3E, (byte) 0x5B, (byte) 0x4F, (byte) 0x5B, (byte) 0x3E,
         (byte) 0x3E, (byte) 0x6B, (byte) 0x4F, (byte) 0x6B, (byte) 0x3E,
@@ -281,9 +282,9 @@ public enum Font {
         (byte) 0x00, (byte) 0x19, (byte) 0x1D, (byte) 0x17, (byte) 0x12,
         (byte) 0x00, (byte) 0x3C, (byte) 0x3C, (byte) 0x3C, (byte) 0x3C,
         (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
-    }),
+    });
 
-    FONT_4X5(32, 95, 4, 5, 4, 7, new byte[] {
+    public static final Font FONT_4X5 = new Font(32, 95, 4, 5, 4, 7, new byte[] {
         (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x00,
         (byte) 0x00, (byte) 0x17, (byte) 0x00, (byte) 0x00,
         (byte) 0x03, (byte) 0x00, (byte) 0x03, (byte) 0x00,
@@ -350,48 +351,114 @@ public enum Font {
         (byte) 0x10, (byte) 0x10, (byte) 0x10, (byte) 0x00,
     });
 
-    private final int minChar, maxChar, width, height, outterWidth, outterHeight;
-    private final byte[] data;
+    protected final int minChar, maxChar, width, height, outterWidth, outterHeight;
+    /**
+     * This array of bytes defines the font.
+     * Every byte is one column of a character, so the first <i>width</i> bytes of the array represent the first character.
+     * This also means that the maximum supported character height is 8.
+     * The final length should be <code>(<i>maxChar</i> - <i>minChar</i> + 1) * width</code>
+     */
+    protected final byte[] data;
 
-    private Font(int minChar, int maxChar, int width, int height, int outterWidth, int outterHeight, byte[] data) {
+    /**
+     * Creates a new font that can be used to print to the display.
+     * This library uses the Unicode charset for fonts.
+     * When creating a font you must implement a continuous section of characters.
+     * For example, implementing character 33: U+0021 (!) to character 122: U+007A (z)
+     * @see <a href="https://www.unicode.org/Public/UNIDATA/NamesList.txt">Unicode Character List</a>
+     *
+     * @param minChar The first character implemented, inclusive
+     * @param maxChar The last character implemented, inclusive
+     * @param width The width of each character
+     * @param height The height of each character. Maximum of 8
+     * @param outerWidth The distance between the left edge of one character and the next
+     * @param outerHeight The distance between the top edge of one line and the next
+     * @param data The data for the font. See {@link #data}
+     */
+    public Font(int minChar, int maxChar, int width, int height, int outerWidth, int outerHeight, byte[] data) {
         this.minChar = minChar;
         this.maxChar = maxChar;
         this.width = width;
         this.height = height;
-        this.outterWidth = outterWidth;
-        this.outterHeight = outterHeight;
+        this.outterWidth = outerWidth;
+        this.outterHeight = outerHeight;
         this.data = data;
     }
 
+    /**
+     * Gets the width characters in this font
+     *
+     * @return The width in pixels
+     */
     public int getWidth() {
         return width;
     }
 
+    /**
+     * Gets the height characters in this font
+     *
+     * @return The height in pixels
+     */
     public int getHeight() {
         return height;
     }
 
+    /**
+     * Gets the distance between the left edge of two characters in this font
+     *
+     * @return The distance in pixels
+     */
     public int getOutterWidth() {
         return outterWidth;
     }
 
+    /**
+     * Gets the distance between the top edge of two lines in this font
+     *
+     * @return The distance in pixels
+     */
     public int getOutterHeight() {
         return outterHeight;
     }
 
-    public byte getData(int offset) {
+    /**
+     * Returns the column of pixels for this offset
+     *
+     * @param offset The index of data to return
+     * @return The byte representing a column of pixels
+     */
+    protected byte getData(int offset) {
         return this.data[offset];
     }
 
+    /**
+     * Returns the first character implemented by this font, inclusive
+     *
+     * @return The unicode index of the character
+     */
     public int getMinChar() {
         return minChar;
     }
 
+    /**
+     * Returns the last character implemented by this font, inclusive
+     *
+     * @return The unicode index of the character
+     */
     public int getMaxChar() {
         return maxChar;
     }
 
-    void drawChar(OLEDDisplay display, char c, int x, int y, boolean on) {
+    /**
+     * Draws a character on the screen
+     *
+     * @param c The character to draw
+     * @param display The display to draw to
+     * @param x The x coordinate of the left edge of the character
+     * @param y The y coordinate of the top edge of the character
+     * @param on Draw the character in on or off pixels
+     */
+    protected void drawChar(OLEDDisplay display, char c, int x, int y, boolean on) {
         if (c > maxChar || c < minChar) {
             c = '?';
         }
