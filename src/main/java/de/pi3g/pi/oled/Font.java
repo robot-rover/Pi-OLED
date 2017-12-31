@@ -410,4 +410,33 @@ public enum Font {
         }
     }
 
+    /**
+     * Sends a preview of every character supported by this font to System.out
+     */
+    public void previewFont() {
+        for(char c = (char) minChar; c < maxChar; c++){
+            boolean[][] out = new boolean[height][width];
+            for (int i = 0; i < width; ++i) {
+                int line = data[((c - minChar) * width) + i];
+
+                for (int j = 0; j < height; ++j) {
+                    out[j][i] = (line & 0x01) > 0;
+                    line >>= 1;
+                }
+            }
+            System.out.print(Integer.toHexString(c) + ": " + c + "\n" + pixArrayToString(out));
+        }
+    }
+
+    private String pixArrayToString(boolean[][] array){
+        StringBuilder builder = new StringBuilder();
+        for(int y = 0; y < array.length; y++){
+            for(int x = 0; x < array[y].length; x++) {
+                builder.append(array[y][x] ? "\u25A0" : " ");
+            }
+            builder.append("\n");
+        }
+        return builder.toString();
+    }
+
 }

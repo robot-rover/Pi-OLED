@@ -48,6 +48,12 @@
             </roles>
             <timezone>+1</timezone>
         </developer>
+        <developer>
+            <id>robot-rover</id>
+            <roles>
+                <role>contributor</role>
+            </roles>
+        </developer>
     </developers>
 
     <dependencies>
