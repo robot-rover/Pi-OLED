@@ -21,6 +21,8 @@ package de.pi3g.pi.oled;
 import com.pi4j.io.i2c.I2CBus;
 import com.pi4j.io.i2c.I2CDevice;
 import com.pi4j.io.i2c.I2CFactory;
+
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.io.IOException;
@@ -60,6 +62,7 @@ public class OLEDDisplay {
 
     private static final Logger LOGGER = Logger.getLogger(OLEDDisplay.class.getCanonicalName());
 
+    // All function codes as listed in https://cdn-shop.adafruit.com/datasheets/SSD1306.pdf
     private static final int DEFAULT_I2C_BUS = I2CBus.BUS_1;
     private static final int DEFAULT_DISPLAY_ADDRESS = 0x3C;
 
@@ -107,8 +110,6 @@ public class OLEDDisplay {
     private final I2CBus bus;
     private final I2CDevice device;
 
-    private final byte[] imageBuffer = new byte[(DISPLAY_WIDTH * DISPLAY_HEIGHT) / 8];
-
     /**
      * Creates an OLED display object with default
      * i2c bus (1) and default display address (0x3C)
@@ -141,9 +142,9 @@ public class OLEDDisplay {
         bus = I2CFactory.getInstance(busNumber);
         device = bus.getDevice(displayAddress);
 
-        LOGGER.log(Level.FINE, "Opened i2c bus");
+        BufferedImage buffer = new BufferedImage(DISPLAY_WIDTH, DISPLAY_HEIGHT / 8, BufferedImage.TYPE_BYTE_BINARY);
 
-        clear();
+        LOGGER.log(Level.FINE, "Opened i2c bus");
 
         //add shutdown hook that clears the display
         //and closes the bus correctly when the software
@@ -158,31 +159,14 @@ public class OLEDDisplay {
         init();
     }
 
-    /**
-     * Clear the screen. All pixels are set off
-     */
-    public synchronized void clear() {
-        Arrays.fill(imageBuffer, (byte) 0x00);
+    public void powerDisplay(boolean on) throws IOException {
+        writeCommand(on ? SSD1306_DISPLAYON : SSD1306_DISPLAYOFF);
     }
 
-    /**
-     * Fills the screen with on or off pixels
-     *
-     * @param on Use on or off pixels
-     */
-    public synchronized void clear(boolean on) {
-        Arrays.fill(imageBuffer, on ? (byte) 0xFF : (byte) 0x00);
+    public void invertDisplay(boolean invert) throws IOException {
+        writeCommand(invert ? SSD1306_INVERTDISPLAY : SSD1306_NORMALDISPLAY);
     }
 
-    public synchronized void setBuffer(byte[] src) {
-        System.arraycopy(src, 0, imageBuffer, 0, imageBuffer.length);
-    }
-
-    /**
-     * Get the width of the screen
-     *
-     * @return The screen width in pixels
-     */
     public int getWidth() {
         return DISPLAY_WIDTH;
     }
@@ -230,94 +214,6 @@ public class OLEDDisplay {
     }
 
     /**
-     * Changes the value of a pixel
-     *
-     * @param x The x coordinate of the pixel (Left is 0)
-     * @param y The y coordinate of the pixel (Top is 0)
-     * @param on Turn the pixel on or off4
-     */
-    public synchronized void setPixel(int x, int y, boolean on) {
-        final int pos = x + (y / 8) * DISPLAY_WIDTH;
-        if (pos >= 0 && pos < MAX_INDEX) {
-            if (on) {
-                this.imageBuffer[pos] |= (1 << (y & 0x07));
-            } else {
-                this.imageBuffer[pos] &= ~(1 << (y & 0x07));
-            }
-        }
-    }
-
-    /**
-     * Draws a character on the screen
-     *
-     * @param c The character to draw
-     * @param font The font to use
-     * @param x The x coordinate of the left edge of the character
-     * @param y The y coordinate of the top edge of the character
-     * @param on Draw the character in on or off pixels
-     */
-    public synchronized void drawChar(char c, Font font, int x, int y, boolean on) {
-        font.drawChar(this, c, x, y, on);
-    }
-
-    /**
-     * Draws a string on the screen
-     *
-     * @param string The string to draw
-     * @param font The font to use
-     * @param x The x coordinate of the left edge of the string
-     * @param y The y coordinate of the top edge of the string
-     * @param on Draw the string in on or off pixels
-     */
-    public synchronized void drawString(String string, Font font, int x, int y, boolean on) {
-        int posX = x;
-        int posY = y;
-        for (char c : string.toCharArray()) {
-            if (c == '\n') {
-                posY += font.getOutterHeight();
-                posX = x;
-            } else {
-                if (posX >= 0 && posX + font.getWidth() < this.getWidth()
-                        && posY >= 0 && posY + font.getHeight() < this.getHeight()) {
-                    drawChar(c, font, posX, posY, on);
-                }
-                posX += font.getOutterWidth();
-            }
-        }
-    }
-
-    /**
-     * Draws a string centered in the middle of the screen
-     *
-     * @param string The string to draw
-     * @param font The font to use
-     * @param y The y coordinate of the top edge of the string
-     * @param on Draw the string in on or off pixels
-     */
-    public synchronized void drawStringCentered(String string, Font font, int y, boolean on) {
-        final int strSizeX = string.length() * font.getOutterWidth();
-        final int x = (this.getWidth() - strSizeX) / 2;
-        drawString(string, font, x, y, on);
-    }
-
-    /**
-     * Fills a rectangular area of the screen with on or off pixels
-     *
-     * @param x The x coordinate of the left edge of the rectangle
-     * @param y The y coordinate of the top edge of the rectangle
-     * @param width The width of the rectangle
-     * @param height The height of the rectangle
-     * @param on Fill the area with on or off pixels
-     */
-    public synchronized void clearRect(int x, int y, int width, int height, boolean on) {
-        for (int posX = x; posX < x + width; ++posX) {
-            for (int posY = y; posY < y + height; ++posY) {
-                setPixel(posX, posY, on);
-            }
-        }
-    }
-
-    /**
      * draws the given image over the current image buffer. The image
      * is automatically converted to a binary image (if it not already
      * is).
@@ -327,17 +223,13 @@ public class OLEDDisplay {
      * content you need to call clear() before.
      *
      * @param image The image to draw
-     * @param x The x coordinate of the left edge of the image
-     * @param y The y coordinate of the top edge of the image
      */
-    public synchronized void drawImage(BufferedImage image, int x, int y) {
-        BufferedImage tmpImage = new BufferedImage(this.getWidth(), this.getHeight(), BufferedImage.TYPE_BYTE_BINARY);
-        tmpImage.getGraphics().drawImage(image, x, y, null);
+    public synchronized void drawImage(BufferedImage image) {
 
         int index = 0;
         int pixelval;
-        final byte[] pixels = ((DataBufferByte) tmpImage.getRaster().getDataBuffer()).getData();
-        for (int posY = 0; posY < DISPLAY_HEIGHT; posY++) {
+        final byte[] pixels = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
+        /*for (int posY = 0; posY < DISPLAY_HEIGHT; posY++) {
             for (int posX = 0; posX < DISPLAY_WIDTH / 8; posX++) {
                 for (int bit = 0; bit < 8; bit++) {
                     pixelval = (byte) ((pixels[index/8] >>  (8 - bit)) & 0x01);
@@ -345,6 +237,20 @@ public class OLEDDisplay {
                     index++;
                 }
             }
+        }*/
+        try {
+            resetDisplayPointer();
+            I2COutStream out = new I2COutStream(image.getWidth() * image.getHeight() / 8, device);
+//            System.out.println(Arrays.toString(pixels));
+            for(int x = 0; x < image.getWidth()/8; x++){
+                for(int y = 0; y < image.getHeight(); y++){
+                    out.write(pixels[y * image.getWidth() / 8 + x]);
+//                    device.write((byte) 0x40, pixels[y * image.getWidth() / 8 + x]);
+//                    System.out.println((y * image.getWidth() / 8 + x) + " - " + Integer.toHexString(0xFF & pixels[y * image.getWidth() / 8 + x]));
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -353,7 +259,7 @@ public class OLEDDisplay {
      *
      * @throws IOException if unable to write bytes to the I2C bus
      */
-    public synchronized void update() throws IOException {
+    public synchronized void resetDisplayPointer() throws IOException {
         writeCommand(SSD1306_COLUMNADDR);
         writeCommand((byte) 0);   // Column start address (0 = reset)
         writeCommand((byte) (DISPLAY_WIDTH - 1)); // Column end address (127 = reset)
@@ -361,19 +267,13 @@ public class OLEDDisplay {
         writeCommand(SSD1306_PAGEADDR);
         writeCommand((byte) 0); // Page start address (0 = reset)
         writeCommand((byte) 7); // Page end address
-
-        for (int i = 0; i < ((DISPLAY_WIDTH * DISPLAY_HEIGHT / 8) / 16); i++) {
-            // send a bunch of data in one xmission
-            device.write((byte) 0x40, imageBuffer, i * 16, 16);
-        }
     }
 
     private synchronized void shutdown() {
         try {
             //before we shut down we clear the display
-            clear();
-            update();
-
+            resetDisplayPointer();
+            powerDisplay(false);
             //now we close the bus
             bus.close();
         } catch (IOException ex) {
