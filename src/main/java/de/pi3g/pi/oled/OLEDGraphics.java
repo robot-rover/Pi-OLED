@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.image.*;
 import java.io.IOException;
 import java.text.AttributedCharacterIterator;
+import java.util.Arrays;
 
 /**
  * This is an implementation of java.awt.Graphics that allows you to draw to the framebuffer of an SSD1306
@@ -32,7 +33,35 @@ public class OLEDGraphics extends Graphics {
         g = img.getGraphics();
     }
 
+    public int getBufferLength() {
+        return frameBuffer.length;
+    }
+
     //todo: Added Framebuffer clear, export, and set
+
+    public void clear(boolean on) {
+        Arrays.fill(frameBuffer, (byte) (on ? 0xFF : 0x00));
+    }
+
+    public void setFrameBuffer(byte[] buffer) {
+        if (buffer.length != frameBuffer.length)
+            throw new ArrayIndexOutOfBoundsException("Buffer length doesn't match framebuffer length");
+        System.arraycopy(buffer, 0, frameBuffer, 0, frameBuffer.length);
+    }
+
+    /**
+     * Returns a copy of the framebuffer. Because this copies the entire framebuffer,
+     * it is somewhat slow and only intended for debugging purposes
+     * <p>
+     * Note: this is the framebuffer as it is currently in the graphics object,
+     * not the internal framebuffer of the display. If changes have been made
+     * since the last {@link #pushBuffer()} call, they will be different.
+     *
+     * @return A copy of the current framebuffer
+     */
+    public byte[] exportFrameBuffer() {
+        return frameBuffer.clone();
+    }
 
     /**
      * Pushes the current buffer of the Graphics object to the internal display buffer
@@ -40,7 +69,7 @@ public class OLEDGraphics extends Graphics {
      * @throws IOException if unable to write bytes to the I2C bus
      */
     public void pushBuffer() throws IOException {
-        display.writeDisplay(getFrameBuffer());
+        display.writeDisplay(frameBuffer);
     }
 
     /**
