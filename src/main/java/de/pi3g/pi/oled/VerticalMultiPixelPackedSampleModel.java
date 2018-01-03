@@ -164,7 +164,7 @@ public class VerticalMultiPixelPackedSampleModel extends SampleModel {
         VerticalMultiPixelPackedSampleModel vmppsm =
                 new VerticalMultiPixelPackedSampleModel(dataType, w, h, bitsPerPixel);
 
-        return new OLEDRaster(vmppsm, new Point());
+        return new OLEDRaster(vmppsm, dataBuffer, new Point());
     }
 
     /**

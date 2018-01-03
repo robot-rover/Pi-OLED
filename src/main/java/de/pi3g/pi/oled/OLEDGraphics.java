@@ -14,7 +14,8 @@ public class OLEDGraphics extends Graphics {
 
     protected Graphics g;
     protected BufferedImage img;
-    private OLEDDisplay display;
+    protected OLEDDisplay display;
+    protected byte[] frameBuffer;
 
     /**
      * Constructs a new <code>OLEDGraphics</code> object with the specified display
@@ -22,14 +23,16 @@ public class OLEDGraphics extends Graphics {
      * @param display the Display to operate on
      */
     OLEDGraphics(OLEDDisplay display) {
-        byte[] frameBuffer = new byte[display.getWidth() * display.getHeight() / 8];
+        frameBuffer = new byte[display.getWidth() * display.getHeight() / 8];
         this.display = display;
         ColorModel cm = new IndexColorModel(1, 2, new byte[]{0, (byte) 255}, new byte[]{0, (byte) 255}, new byte[]{0, (byte) 255});
-        DataBuffer db = new DataBufferByte(frameBuffer, frameBuffer.length);
+        DataBufferByte db = new DataBufferByte(frameBuffer, frameBuffer.length);
         WritableRaster r = VerticalMultiPixelPackedSampleModel.createRaster(db, display.getWidth(), display.getHeight(), 1, new Point());
         img = new BufferedImage(cm, r, false, null);
         g = img.getGraphics();
     }
+
+    //todo: Added Framebuffer clear, export, and set
 
     /**
      * Pushes the current buffer of the Graphics object to the internal display buffer
@@ -41,17 +44,16 @@ public class OLEDGraphics extends Graphics {
     }
 
     /**
-     * Returns a copy of the framebuffer. Because this copies the entire framebuffer,
-     * it is somewhat slow and only intended for debugging purposes
-     * <p>
+     * Returns a reference to the graphics framebuffer.
+     * <br>
      * Note: this is the framebuffer as it is currently in the graphics object,
      * not the internal framebuffer of the display. If changes have been made
      * since the last {@link #pushBuffer()} call, they will be different.
      *
-     * @return A copy of the current framebuffer
+     * @return The current framebuffer
      */
-    public byte[] getFrameBuffer() {
-        return ((DataBufferByte) img.getRaster().getDataBuffer()).getData().clone();
+    protected byte[] getFrameBuffer() {
+        return frameBuffer;
     }
 
     /**
@@ -113,7 +115,6 @@ public class OLEDGraphics extends Graphics {
     /**
      * {@inheritDoc}
      */
-    @Override
     public FontMetrics getFontMetrics(Font f) {
         return g.getFontMetrics(f);
     }
@@ -121,7 +122,6 @@ public class OLEDGraphics extends Graphics {
     /**
      * {@inheritDoc}
      */
-    @Override
     public Rectangle getClipBounds() {
         return g.getClipBounds();
     }
@@ -129,7 +129,6 @@ public class OLEDGraphics extends Graphics {
     /**
      * {@inheritDoc}
      */
-    @Override
     public void clipRect(int x, int y, int width, int height) {
         g.clipRect(x, y, width, height);
     }
@@ -137,7 +136,6 @@ public class OLEDGraphics extends Graphics {
     /**
      * {@inheritDoc}
      */
-    @Override
     public void setClip(int x, int y, int width, int height) {
         g.setClip(x, y, width, height);
     }
@@ -145,7 +143,6 @@ public class OLEDGraphics extends Graphics {
     /**
      * {@inheritDoc}
      */
-    @Override
     public Shape getClip() {
         return g.getClip();
     }
@@ -153,7 +150,6 @@ public class OLEDGraphics extends Graphics {
     /**
      * {@inheritDoc}
      */
-    @Override
     public void setClip(Shape clip) {
         g.setClip(clip);
     }
@@ -161,7 +157,6 @@ public class OLEDGraphics extends Graphics {
     /**
      * {@inheritDoc}
      */
-    @Override
     public void copyArea(int x, int y, int width, int height, int dx, int dy) {
         g.copyArea(x, y, width, height, dx, dy);
     }
@@ -169,7 +164,6 @@ public class OLEDGraphics extends Graphics {
     /**
      * {@inheritDoc}
      */
-    @Override
     public void drawLine(int x1, int y1, int x2, int y2) {
         g.drawLine(x1, y1, x2, y2);
     }
@@ -177,7 +171,6 @@ public class OLEDGraphics extends Graphics {
     /**
      * {@inheritDoc}
      */
-    @Override
     public void fillRect(int x, int y, int width, int height) {
         g.fillRect(x, y, width, height);
     }
@@ -185,7 +178,6 @@ public class OLEDGraphics extends Graphics {
     /**
      * {@inheritDoc}
      */
-    @Override
     public void clearRect(int x, int y, int width, int height) {
         g.clearRect(x, y, width, height);
     }
@@ -193,7 +185,6 @@ public class OLEDGraphics extends Graphics {
     /**
      * {@inheritDoc}
      */
-    @Override
     public void drawRoundRect(int x, int y, int width, int height, int arcWidth, int arcHeight) {
         g.drawRoundRect(x, y, width, height, arcWidth, arcHeight);
     }
@@ -201,7 +192,6 @@ public class OLEDGraphics extends Graphics {
     /**
      * {@inheritDoc}
      */
-    @Override
     public void fillRoundRect(int x, int y, int width, int height, int arcWidth, int arcHeight) {
         g.fillRoundRect(x, y, width, height, arcWidth, arcHeight);
     }
